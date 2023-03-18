@@ -1,7 +1,7 @@
 {
-  "name": "@typegoose/auto-increment",
-  "version": "2.2.0",
-  "description": "Automaticly Increment properties",
+  "name": "@sudtanj/typegoose-auto-increment",
+  "version": "2.2.2",
+  "description": "Automaticly Increment properties updated by sudtanj",
   "main": "lib/autoIncrement.js",
   "types": "lib/autoIncrement.d.ts",
   "engines": {
@@ -30,7 +30,7 @@
   "contributors": [],
   "license": "MIT",
   "peerDependencies": {
-    "mongoose": "~6.10.0"
+    "mongoose": "~7.0.2"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.4.4",
@@ -41,7 +41,7 @@
     "@semantic-release/github": "^8.0.7",
     "@semantic-release/npm": "^9.0.2",
     "@semantic-release/release-notes-generator": "^10.0.3",
-    "@typegoose/typegoose": "~10.2.0",
+    "@typegoose/typegoose": "~11.0.0-beta.1",
     "@types/jest": "^29.4.0",
     "@types/node": "~14.14.31",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
@@ -54,7 +54,7 @@
     "jest": "^29.4.3",
     "lint-staged": "^13.1.2",
     "mongodb-memory-server": "^8.11.5",
-    "mongoose": "~6.10.0",
+    "mongoose": "~7.0.2",
     "prettier": "^2.8.4",
     "rimraf": "3.0.2",
     "semantic-release": "^19.0.5",
