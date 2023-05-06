@@ -1,6 +1,6 @@
 {
   "name": "@sudtanj/typegoose-auto-increment",
-  "version": "2.2.2",
+  "version": "2.2.4",
   "description": "Automaticly Increment properties updated by sudtanj",
   "main": "lib/autoIncrement.js",
   "types": "lib/autoIncrement.d.ts",
@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "build:tests": "tsc -p tsconfig.json",
-    "lint": "eslint -c ./.eslintrc.js './**/*.{js,ts}'",
+    "lint": "eslint -c ./.eslintrc.js \"./**/*.{js,ts}\"",
     "test": "jest",
     "test:watch": "jest --watchAll",
     "test:coverage": "jest --collectCoverage",

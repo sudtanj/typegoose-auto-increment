@@ -182,6 +182,97 @@ describe('Basic Suite', () => {
       expect(mongoose.connection.model('identitycounter')).not.toBeUndefined();
     });
 
+    it('Basic Function Typegoose With prefix', async () => {
+      let mockPrefix = 'test';
+      @plugin(AutoIncrementID, {
+        field: 'idCounter',
+        prefix: () => {
+          return mockPrefix;
+        },
+      })
+      @modelOptions({ options: { customName: 'AutoIncrementID-SomeClassPrefix' } })
+      class SomeClass {
+        @prop()
+        public idCounter?: number;
+
+        @prop({ required: true })
+        public someIncrementedField!: number;
+      }
+
+      const SomeModel = getModelForClass(SomeClass);
+
+      const doc = await SomeModel.create({ someIncrementedField: 20 });
+      const doc1 = await SomeModel.create({ someIncrementedField: 21 });
+
+      expect(doc.someIncrementedField).toBe(20);
+      expect(doc.idCounter).toBe(0);
+
+      expect(doc1.someIncrementedField).toBe(21);
+      expect(doc1.idCounter).toBe(1);
+
+      mockPrefix = 'b';
+      const doc2 = await SomeModel.create({ someIncrementedField: 22 });
+
+      expect(doc2.someIncrementedField).toBe(22);
+      expect(doc2.idCounter).toBe(0);
+
+      expect(mongoose.connection.model('identitycounter')).not.toBeUndefined();
+    });
+
+    it('Basic Function Typegoose With postIncrement', async () => {
+      const mockPrefix = 'test';
+      @plugin(AutoIncrementID, {
+        field: 'idCounter',
+        prefix: () => {
+          return mockPrefix;
+        },
+        postIncrement: (val: SomeClass) => {
+          val.test = 'Prefix' + val.idCounter;
+        },
+      })
+      @modelOptions({ options: { customName: 'AutoIncrementID-SomeClassPostIncrement' } })
+      class SomeClass {
+        @prop()
+        public idCounter?: number;
+
+        @prop({ required: true })
+        public someIncrementedField!: number;
+
+        @prop()
+        public test: string;
+      }
+
+      const SomeModel = getModelForClass(SomeClass);
+
+      const doc = await SomeModel.create({ someIncrementedField: 20 });
+
+      expect(doc.someIncrementedField).toBe(20);
+      expect(doc.idCounter).toBe(0);
+      expect(doc.test).toBe('Prefix0');
+
+      const fetch = await SomeModel.findById(doc.id).exec();
+
+      expect(fetch?.someIncrementedField).toBe(20);
+      expect(fetch?.idCounter).toBe(0);
+      expect(fetch?.test).toBe('Prefix0');
+
+      expect(mongoose.connection.model('identitycounter')).not.toBeUndefined();
+    });
+
+    it('should return error when prefix is used but counter id is default', async () => {
+      @plugin(AutoIncrementID, { prefix: () => 'test' })
+      @modelOptions({ options: { customName: 'AutoIncrementID-SomeClassPrefixError' } })
+      class SomeClass {
+        @prop()
+        public idCounter?: number;
+
+        @prop({ required: true })
+        public someIncrementedField!: number;
+      }
+
+      expect(() => getModelForClass(SomeClass)).toThrowError('Cannot use _id when prefix is specified');
+    });
+
     it('Should work if used in an sub-document', async () => {
       @plugin(AutoIncrementID, { startAt: 1 })
       @modelOptions({ options: { customName: 'AutoIncrementID-SubDoc' } })

@@ -66,10 +66,11 @@ const IDSchema = new mongoose.Schema<AutoIncrementIDTrackerSpec>(
     field: String,
     modelName: String,
     count: Number,
+    prefix: String,
   },
   { versionKey: false }
 );
-IDSchema.index({ field: 1, modelName: 1 }, { unique: true });
+IDSchema.index({ field: 1, modelName: 1, prefix: 1 }, { unique: true });
 
 export const AutoIncrementIDSkipSymbol = Symbol('AutoIncrementIDSkip');
 
@@ -79,28 +80,36 @@ export const AutoIncrementIDSkipSymbol = Symbol('AutoIncrementIDSkip');
  * @param schema The Schema
  * @param options The Options
  */
-export function AutoIncrementID(schema: mongoose.Schema<any>, options: AutoIncrementIDOptions): void {
+export function AutoIncrementID(schema: mongoose.Schema<any>, options: AutoIncrementIDOptions<any>): void {
   /** The Options with default options applied */
-  const opt: Required<AutoIncrementIDOptions> = {
+  const opt: Required<AutoIncrementIDOptions<typeof this>> = {
     field: '_id',
     incrementBy: DEFAULT_INCREMENT,
     trackerCollection: 'identitycounters',
     trackerModelName: 'identitycounter',
     startAt: 0,
     overwriteModelName: '',
+    prefix: () => null,
+    postIncrement: () => {},
     ...options,
   };
+
+  if (opt.prefix() !== null && opt.field === '_id') {
+    throw new Error('Cannot use _id when prefix is specified');
+  }
 
   // check if the field is an number
   if (!(schema.path(opt.field) instanceof mongoose.Schema.Types.Number)) {
     throw new Error(`Field "${opt.field}" is not an SchemaNumber!`);
   }
 
-  let model: mongoose.Model<AutoIncrementIDTrackerSpec>;
-
   logger.info('AutoIncrementID called with options %O', opt);
 
   schema.pre('save', async function AutoIncrementPreSaveID(): Promise<void> {
+    const prefixVal = opt.prefix();
+    const db: mongoose.Connection = this.db ?? (this as any).ownerDocument().db;
+    const model = db.model<AutoIncrementIDTrackerSpec>(opt.trackerModelName, IDSchema, opt.trackerCollection);
+
     logger.info('AutoIncrementID PreSave');
 
     const originalModelName: string = (this.constructor as any).modelName;
@@ -116,27 +125,27 @@ export function AutoIncrementID(schema: mongoose.Schema<any>, options: AutoIncre
       modelName = opt.overwriteModelName || originalModelName;
     }
 
-    if (!model) {
-      logger.info('Creating idtracker model named "%s"', opt.trackerModelName);
-      // needs to be done, otherwise "undefiend" error if the plugin is used in an sub-document
-      const db: mongoose.Connection = this.db ?? (this as any).ownerDocument().db;
-      model = db.model<AutoIncrementIDTrackerSpec>(opt.trackerModelName, IDSchema, opt.trackerCollection);
-      // test if the counter document already exists
-      const counter = await model
-        .findOne({
-          modelName: modelName,
-          field: opt.field,
-        })
-        .lean()
-        .exec();
+    const counter = await model
+      .findOne({
+        modelName: modelName,
+        field: opt.field,
+        prefix: prefixVal,
+      })
+      .lean()
+      .exec();
 
-      if (!counter) {
-        await model.create({
-          modelName: modelName,
-          field: opt.field,
-          count: opt.startAt - opt.incrementBy,
-        });
-      }
+    if (!counter) {
+      const count = opt.startAt;
+      await model.create({
+        modelName: modelName,
+        field: opt.field,
+        count,
+        prefix: prefixVal,
+      });
+      this[opt.field] = count;
+      opt.postIncrement(this);
+
+      return;
     }
 
     if (!this.isNew) {
@@ -157,6 +166,7 @@ export function AutoIncrementID(schema: mongoose.Schema<any>, options: AutoIncre
         {
           field: opt.field,
           modelName: modelName,
+          prefix: prefixVal,
         },
         {
           $inc: { count: opt.incrementBy },
@@ -177,6 +187,7 @@ export function AutoIncrementID(schema: mongoose.Schema<any>, options: AutoIncre
 
     logger.info('Setting "%s" to "%d"', opt.field, leandoc.count);
     this[opt.field] = leandoc.count;
+    opt.postIncrement(this);
 
     return;
   });

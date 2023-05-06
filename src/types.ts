@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { TimeStamps } from '@typegoose/typegoose/lib/defaultClasses';
 
 export interface AutoIncrementOptionsSimple {
   /** Which Field to increment on save */
@@ -12,7 +13,7 @@ export interface AutoIncrementOptionsSimple {
 
 export type AutoIncrementSimplePluginOptions = AutoIncrementOptionsSimple | AutoIncrementOptionsSimple[];
 
-export interface AutoIncrementIDOptions {
+export interface AutoIncrementIDOptions<T extends TimeStamps> {
   /**
    * How much to increment the field by
    * @default 1
@@ -45,6 +46,16 @@ export interface AutoIncrementIDOptions {
    * Defaults to `document.constructor.modelName`
    */
   overwriteModelName?: string | OverwriteModelNameFunction;
+  /**
+   * this is use to differentiate the counter based on certain prefix
+   * @default ''
+   */
+  prefix?: () => string | null;
+  /**
+   * this is use to add hook for event after the increment is done
+   * @default void
+   */
+  postIncrement?: (val: T) => void;
 }
 
 /**
@@ -59,4 +70,6 @@ export interface AutoIncrementIDTrackerSpec {
   field: string;
   /** Current Tracker count */
   count: number;
+  /** prefix to differentiate counter */
+  prefix: string | null;
 }
